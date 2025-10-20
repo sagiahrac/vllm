@@ -19,8 +19,6 @@ LORA_NAME_PATH_MAP = {
     "Cat": "charent/self_cognition_Bob",  # same as Bob
 }
 
-LORA_NAME_ID_MAP = {}
-INCREASE_LORA_ID = 0
 LORA_RANK = 8
 
 LORA_TEST_PROMPTS = ["What is GitHub?", "Hi, tell me about you"]
@@ -38,14 +36,8 @@ def format_chatml_messages(prompt: str):
 
 
 def make_add_lora_request(name: str, path: str):
-    global INCREASE_LORA_ID, LORA_NAME_ID_MAP
-
-    INCREASE_LORA_ID += 1
-    LORA_NAME_ID_MAP[name] = INCREASE_LORA_ID
-
     return LoRARequest(
         lora_name=name,
-        lora_int_id=INCREASE_LORA_ID,
         lora_path=path,
     )
 
@@ -92,7 +84,6 @@ def test_multi_loras_with_tp_sync():
     def call_llm_get_outputs(prompt: str, lora_name: str):
         lora_request = LoRARequest(
             lora_name=lora_name,
-            lora_int_id=LORA_NAME_ID_MAP[lora_name],
             lora_path=LORA_NAME_PATH_MAP[lora_name],
         )
         messages = format_chatml_messages(prompt)

@@ -446,7 +446,7 @@ def _gen_mm_extra_hash_keys(
     return extra_keys, curr_mm_idx
 
 
-def _gen_lora_extra_hash_keys(request: Request) -> list[int]:
+def _gen_lora_extra_hash_keys(request: Request) -> list[str]:
     """Generate extra keys related to LoRA for block hash computation.
 
     Args:
@@ -458,7 +458,7 @@ def _gen_lora_extra_hash_keys(request: Request) -> list[int]:
     """
     if not request.lora_request:
         return []
-    return [request.lora_request.lora_int_id]
+    return [request.lora_request.name]
 
 
 def generate_block_hash_extra_keys(

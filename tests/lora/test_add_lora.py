@@ -21,7 +21,7 @@ DEFAULT_MAX_LORAS = 4 * 3
 
 def get_lora_requests(lora_path) -> list[LoRARequest]:
     lora_requests: list[LoRARequest] = [
-        LoRARequest(lora_name=f"{i}", lora_int_id=i, lora_path=lora_path)
+        LoRARequest(lora_name=f"{i}", lora_path=lora_path)
         for i in range(1, DEFAULT_MAX_LORAS + 1)
     ]
     return lora_requests
@@ -36,9 +36,8 @@ async def requests_processing_time(llm, lora_requests: list[LoRARequest]) -> flo
     start = time.perf_counter()
 
     for lora_request in lora_requests:
-        lora_int_id = lora_request.lora_int_id
         generator = llm.generate(
-            prompt=TextPrompt(prompt=f"hello {lora_int_id}", multi_modal_data=None),  # type: ignore
+            prompt=TextPrompt(prompt=f"hello {lora_request.name}", multi_modal_data=None),  # type: ignore
             sampling_params=sampling_params,
             lora_request=lora_request,
             request_id=f"test{lora_int_id}",

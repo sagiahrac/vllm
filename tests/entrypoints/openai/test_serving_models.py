@@ -48,7 +48,7 @@ async def test_serving_model_name():
     serving_models = await _async_serving_models_init()
     assert serving_models.model_name(None) == MODEL_NAME
     request = LoRARequest(
-        lora_name="adapter", lora_path="/path/to/adapter2", lora_int_id=1
+        lora_name="adapter", lora_path="/path/to/adapter2"
     )
     assert serving_models.model_name(request) == request.lora_name
 
@@ -112,7 +112,7 @@ async def test_unload_lora_adapter_success():
 @pytest.mark.asyncio
 async def test_unload_lora_adapter_missing_fields():
     serving_models = await _async_serving_models_init()
-    request = UnloadLoRAAdapterRequest(lora_name="", lora_int_id=None)
+    request = UnloadLoRAAdapterRequest(lora_name="")
     response = await serving_models.unload_lora_adapter(request)
     assert isinstance(response, ErrorResponse)
     assert response.error.type == "InvalidUserInput"

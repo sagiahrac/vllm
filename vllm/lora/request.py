@@ -18,13 +18,9 @@ class LoRARequest(
     serving, it is recommended to not allow users to use this class but
     instead provide another layer of abstraction to prevent users from
     accessing unauthorized LoRA adapters.
-
-    lora_int_id must be globally unique for a given adapter.
-    This is currently not enforced in vLLM.
     """
 
     lora_name: str
-    lora_int_id: int
     lora_path: str = ""
     lora_local_path: str | None = msgspec.field(default=None)
     long_lora_max_len: int | None = None
@@ -32,8 +28,6 @@ class LoRARequest(
     tensorizer_config_dict: dict | None = None
 
     def __post_init__(self):
-        if self.lora_int_id < 1:
-            raise ValueError(f"id must be > 0, got {self.lora_int_id}")
         if self.lora_local_path:
             warnings.warn(
                 "The 'lora_local_path' attribute is deprecated "
@@ -47,10 +41,6 @@ class LoRARequest(
 
         # Ensure lora_path is not empty
         assert self.lora_path, "lora_path cannot be empty"
-
-    @property
-    def adapter_id(self):
-        return self.lora_int_id
 
     @property
     def name(self):

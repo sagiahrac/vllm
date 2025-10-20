@@ -162,13 +162,13 @@ class EngineCoreClient(ABC):
     def add_lora(self, lora_request: LoRARequest) -> bool:
         raise NotImplementedError
 
-    def remove_lora(self, lora_id: int) -> bool:
+    def remove_lora(self, lora_name: str) -> bool:
         raise NotImplementedError
 
-    def list_loras(self) -> set[int]:
+    def list_loras(self) -> set[str]:
         raise NotImplementedError
 
-    def pin_lora(self, lora_id: int) -> bool:
+    def pin_lora(self, lora_name: str) -> bool:
         raise NotImplementedError
 
     def save_sharded_state(
@@ -226,13 +226,13 @@ class EngineCoreClient(ABC):
     async def add_lora_async(self, lora_request: LoRARequest) -> bool:
         raise NotImplementedError
 
-    async def remove_lora_async(self, lora_id: int) -> bool:
+    async def remove_lora_async(self, lora_name: str) -> bool:
         raise NotImplementedError
 
-    async def list_loras_async(self) -> set[int]:
+    async def list_loras_async(self) -> set[str]:
         raise NotImplementedError
 
-    async def pin_lora_async(self, lora_id: int) -> bool:
+    async def pin_lora_async(self, lora_name: str) -> bool:
         raise NotImplementedError
 
     async def save_sharded_state_async(
@@ -305,14 +305,14 @@ class InprocClient(EngineCoreClient):
     def add_lora(self, lora_request: LoRARequest) -> bool:
         return self.engine_core.add_lora(lora_request)
 
-    def remove_lora(self, lora_id: int) -> bool:
-        return self.engine_core.remove_lora(lora_id)
+    def remove_lora(self, lora_name: str) -> bool:
+        return self.engine_core.remove_lora(lora_name)
 
-    def list_loras(self) -> set[int]:
+    def list_loras(self) -> set[str]:
         return self.engine_core.list_loras()
 
-    def pin_lora(self, lora_id: int) -> bool:
-        return self.engine_core.pin_lora(lora_id)
+    def pin_lora(self, lora_name: str) -> bool:
+        return self.engine_core.pin_lora(lora_name)
 
     def save_sharded_state(
         self, path: str, pattern: str | None = None, max_size: int | None = None
@@ -756,14 +756,14 @@ class SyncMPClient(MPClient):
     def add_lora(self, lora_request: LoRARequest) -> bool:
         return self.call_utility("add_lora", lora_request)
 
-    def remove_lora(self, lora_id: int) -> bool:
-        return self.call_utility("remove_lora", lora_id)
+    def remove_lora(self, lora_name: str) -> bool:
+        return self.call_utility("remove_lora", lora_name)
 
-    def list_loras(self) -> set[int]:
+    def list_loras(self) -> set[str]:
         return self.call_utility("list_loras")
 
-    def pin_lora(self, lora_id: int) -> bool:
-        return self.call_utility("pin_lora", lora_id)
+    def pin_lora(self, lora_name: str) -> bool:
+        return self.call_utility("pin_lora", lora_name)
 
     def sleep(self, level: int = 1) -> None:
         self.call_utility("sleep", level)
@@ -972,14 +972,14 @@ class AsyncMPClient(MPClient):
     async def add_lora_async(self, lora_request: LoRARequest) -> bool:
         return await self.call_utility_async("add_lora", lora_request)
 
-    async def remove_lora_async(self, lora_id: int) -> bool:
-        return await self.call_utility_async("remove_lora", lora_id)
+    async def remove_lora_async(self, lora_name: str) -> bool:
+        return await self.call_utility_async("remove_lora", lora_name)
 
-    async def list_loras_async(self) -> set[int]:
+    async def list_loras_async(self) -> set[str]:
         return await self.call_utility_async("list_loras")
 
-    async def pin_lora_async(self, lora_id: int) -> bool:
-        return await self.call_utility_async("pin_lora", lora_id)
+    async def pin_lora_async(self, lora_name: str) -> bool:
+        return await self.call_utility_async("pin_lora", lora_name)
 
     async def save_sharded_state_async(
         self, path: str, pattern: str | None = None, max_size: int | None = None

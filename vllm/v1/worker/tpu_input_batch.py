@@ -139,9 +139,9 @@ class InputBatch:
         self.min_tokens: dict[int, tuple[int, set[int]]] = {}
 
         # lora related
-        self.request_lora_mapping = np.zeros((self.max_num_reqs,), dtype=np.int32)
-        self.lora_id_to_request_ids: dict[int, set[str]] = {}
-        self.lora_id_to_lora_request: dict[int, LoRARequest] = {}
+        self.request_lora_mapping: list[str | None] = [None] * max_num_reqs
+        self.lora_name_to_request_ids: dict[str, set[str]] = {}
+        self.lora_name_to_lora_request: dict[str, LoRARequest] = {}
 
         # req_index -> generator
         # NOTE(woosuk): The indices of the requests that do not have their own
@@ -286,16 +286,16 @@ class InputBatch:
 
         # Add request lora ID
         if request.lora_request:
-            lora_id = request.lora_request.lora_int_id
-            if lora_id not in self.lora_id_to_request_ids:
-                self.lora_id_to_request_ids[lora_id] = set()
+            lora_name = request.lora_request.name
+            if lora_name not in self.lora_name_to_request_ids:
+                self.lora_name_to_request_ids[lora_name] = set()
 
-            self.request_lora_mapping[req_index] = lora_id
-            self.lora_id_to_request_ids[lora_id].add(request.req_id)
-            self.lora_id_to_lora_request[lora_id] = request.lora_request
+            self.request_lora_mapping[req_index] = lora_name
+            self.lora_name_to_request_ids[lora_name].add(request.req_id)
+            self.lora_name_to_lora_request[lora_name] = request.lora_request
         else:
             # No LoRA
-            self.request_lora_mapping[req_index] = 0
+            self.request_lora_mapping[req_index] = None
 
     def remove_request(self, req_id: str) -> int | None:
         """This method must always be followed by a call to condense()."""

@@ -153,18 +153,18 @@ class ExecutorBase(ABC):
         return
 
     def add_lora(self, lora_request: LoRARequest) -> bool:
-        assert lora_request.lora_int_id > 0, "lora_id must be greater than 0."
+        assert lora_request.name, "lora_name cannot be empty."
         return all(self.collective_rpc("add_lora", args=(lora_request,)))
 
-    def remove_lora(self, lora_id: int) -> bool:
-        assert lora_id > 0, "lora_id must be greater than 0."
-        return all(self.collective_rpc("remove_lora", args=(lora_id,)))
+    def remove_lora(self, lora_name: str) -> bool:
+        assert lora_name, "lora_name cannot be empty."
+        return all(self.collective_rpc("remove_lora", args=(lora_name,)))
 
-    def pin_lora(self, lora_id: int) -> bool:
-        assert lora_id > 0, "lora_id must be greater than 0."
-        return all(self.collective_rpc("pin_lora", args=(lora_id,)))
+    def pin_lora(self, lora_name: str) -> bool:
+        assert lora_name, "lora_name cannot be empty."
+        return all(self.collective_rpc("pin_lora", args=(lora_name,)))
 
-    def list_loras(self) -> set[int]:
+    def list_loras(self) -> set[str]:
         sets = self.collective_rpc("list_loras")
         for s in sets:
             assert s == sets[0], "All workers should have the same LORAs."
