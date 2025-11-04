@@ -60,14 +60,21 @@ def main():
     # Set up the main subscription socket
     sub = context.socket(zmq.SUB)
     sub.connect("tcp://localhost:5557")
-    topic = "kv-events"
+    topic = "kv@localhost@facebook/opt-125m"
     sub.setsockopt_string(zmq.SUBSCRIBE, topic)
 
-    # Initialize replay socket
-    replay = context.socket(zmq.REQ)
-    replay.connect("tcp://localhost:5558")
-    poller = zmq.Poller()
-    poller.register(replay, zmq.POLLIN)
+    # Initialize replay socket (optional - our server doesn't have replay endpoint)
+    replay = None
+    poller = None
+    try:
+        replay = context.socket(zmq.REQ)
+        replay.connect("tcp://localhost:5558")
+        poller = zmq.Poller()
+        poller.register(replay, zmq.POLLIN)
+    except Exception as e:
+        print(f"Note: Replay socket not available: {e}")
+        replay = None
+        poller = None
 
     print("Listening for KV cache events on topic:", topic)
 
@@ -77,7 +84,12 @@ def main():
                 _, seq_bytes, payload = sub.recv_multipart()
                 seq = int.from_bytes(seq_bytes, "big")
 
-                if last_seq >= 0 and seq > last_seq + 1:
+                if (
+                    last_seq >= 0
+                    and seq > last_seq + 1
+                    and replay is not None
+                    and poller is not None
+                ):
                     missed = seq - last_seq - 1
                     print(
                         f"Missed {missed} messages (last: {last_seq}, current: {seq})"

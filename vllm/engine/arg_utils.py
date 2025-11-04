@@ -1366,7 +1366,7 @@ class EngineArgs:
                 "S390X and RISC-V CPUs; "
                 "disabling it for V1 backend."
             )
-            self.enable_prefix_caching = False
+            # self.enable_prefix_caching = False
 
         assert self.enable_chunked_prefill is not None
 

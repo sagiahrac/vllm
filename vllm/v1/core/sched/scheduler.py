@@ -175,6 +175,7 @@ class Scheduler(SchedulerInterface):
         self.use_pp = self.parallel_config.pipeline_parallel_size > 1
 
     def schedule(self) -> SchedulerOutput:
+        logger.debug("🗓️  Scheduler: schedule() called")
         # NOTE(woosuk) on the scheduling algorithm:
         # There's no "decoding phase" nor "prefill phase" in the scheduler.
         # Each request just has the num_computed_tokens and

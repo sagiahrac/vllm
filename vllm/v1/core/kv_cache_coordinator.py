@@ -262,6 +262,7 @@ class UnitaryKVCacheCoordinator(KVCacheCoordinator):
         self.kv_cache_spec = self.kv_cache_config.kv_cache_groups[0].kv_cache_spec
         self.block_size = self.kv_cache_spec.block_size
         self.dcp_world_size = dcp_world_size
+        self.use_eagle = use_eagle
         if dcp_world_size > 1:
             self.block_size *= dcp_world_size
         assert len(self.kv_cache_config.kv_cache_groups) == 1, (
@@ -312,6 +313,7 @@ class HybridKVCacheCoordinator(KVCacheCoordinator):
             dcp_world_size=dcp_world_size,
         )
         assert dcp_world_size == 1, "DCP not support hybrid attn now."
+        self.use_eagle = use_eagle
         self.verify_and_split_kv_cache_groups()
 
     def verify_and_split_kv_cache_groups(self) -> None:

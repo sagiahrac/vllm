@@ -182,6 +182,9 @@ class ZmqEventPublisher(EventPublisher):
             raise RuntimeError("Publisher is closed")
         if events.data_parallel_rank is None:
             events.data_parallel_rank = self._data_parallel_rank
+        logger.info(
+            "🎯 ZMQ Publisher: Queuing %d events for publishing", len(events.events)
+        )
         self._event_queue.put(events)
 
     def shutdown(self) -> None:
@@ -269,6 +272,12 @@ class ZmqEventPublisher(EventPublisher):
 
                 payload = self._pack.encode(event)
                 seq_bytes = seq.to_bytes(8, "big")
+                logger.info(
+                    "📤 ZMQ Publisher: Sending seq=%d, topic='%s', %d events",
+                    seq,
+                    self._topic_bytes.decode(),
+                    len(event.events),
+                )
                 self._pub.send_multipart((self._topic_bytes, seq_bytes, payload))
 
                 self._buffer.append((seq, payload))

@@ -2,6 +2,7 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 import hashlib
 import os
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -9,6 +10,7 @@ import safetensors
 import torch
 
 from vllm.config import VllmConfig
+from vllm.distributed.kv_events import BlockStored, KVCacheEvent
 from vllm.distributed.kv_transfer.kv_connector.v1.base import (
     KVConnectorBase_V1,
     KVConnectorMetadata,
@@ -103,8 +105,13 @@ class SharedStorageConnector(KVConnectorBase_V1):
         self._storage_path = self._kv_transfer_config.get_from_extra_config(
             "shared_storage_path", "/tmp"
         )
+        # Store device info for tensor operations
+        self._device = vllm_config.device_config.device
+        # Track KV cache events
+        self._events: list[KVCacheEvent] = []
         logger.info(self._kv_transfer_config)
         logger.info("Shared storage path is %s", self._storage_path)
+        logger.info("Using device: %s", self._device)
 
     def start_load_kv(self, forward_context: "ForwardContext", **kwargs: Any) -> None:
         """Start loading the KV cache from the connector buffer to vLLM's
@@ -193,7 +200,9 @@ class SharedStorageConnector(KVConnectorBase_V1):
                 filename = self._generate_filename_debug(
                     layer_name, request.token_ids, request.mm_hashes
                 )
-                kv_cache = safetensors.torch.load_file(filename)["kv_cache"].cuda()
+                kv_cache = safetensors.torch.load_file(filename)["kv_cache"].to(
+                    self._device
+                )
                 inject_kv_into_layer(kv_cache_layer, kv_cache, request.slot_mapping)
 
     def wait_for_layer_load(self, layer_name: str) -> None:
@@ -250,6 +259,27 @@ class SharedStorageConnector(KVConnectorBase_V1):
                 kv_cache = extract_kv_from_layer(kv_layer, request.slot_mapping)
                 tensors = {"kv_cache": kv_cache.detach().cpu()}
                 safetensors.torch.save_file(tensors, filename)
+
+                # Emit KV cache event
+                # Create a simple block hash from token IDs for tracking
+                token_bytes = request.token_ids.numpy().tobytes()
+                block_hash = hashlib.md5(token_bytes, usedforsecurity=False).digest()
+
+                logger.info(
+                    "🎯 SharedStorageConnector: Emitting BlockStored for %d tokens",
+                    len(request.token_ids),
+                )
+
+                self._events.append(
+                    BlockStored(
+                        block_hashes=[block_hash],
+                        parent_block_hash=None,
+                        token_ids=request.token_ids.tolist(),
+                        block_size=self._block_size,
+                        lora_name=None,
+                        medium="DISK",
+                    )
+                )
 
     def wait_for_save(self):
         return
@@ -443,6 +473,22 @@ class SharedStorageConnector(KVConnectorBase_V1):
             token_ids, mm_hashes=mm_hashes, create_folder=True
         )
         return os.path.join(foldername, f"{layer_name}.safetensors")
+
+    def take_events(self) -> Iterable[KVCacheEvent]:
+        """Take the KV cache events from the connector.
+
+        Yields:
+            New KV cache events since the last call.
+        """
+        events = self._events
+        self._events = []
+        if events:
+            logger.info(
+                "🚀 SharedStorageConnector: Returning %d events to scheduler: %s",
+                len(events),
+                [type(e).__name__ for e in events],
+            )
+        return events
 
 
 def align_to_block_size(num_tokens: int, block_size) -> int:
