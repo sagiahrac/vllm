@@ -71,7 +71,7 @@ async def listen_for_kv_event() -> list[BlockStored | BlockRemoved | AllBlocksCl
     topic = "kv@localhost@facebook/opt-125m"
     sub.setsockopt_string(zmq.SUBSCRIBE, topic)
 
-    print("ZMQ Listener started and waiting for events on topic:", topic)
+    print("[ZMQ] Listener started and waiting for events on topic:", topic)
 
     events = []
 
@@ -91,7 +91,7 @@ async def listen_for_kv_event() -> list[BlockStored | BlockRemoved | AllBlocksCl
     except asyncio.TimeoutError:
         print("[ZMQ] Timeout (20s) reached while waiting for the first event batch.")
     except Exception as e:
-        print(f"ZMQ Listener: An error occurred while receiving ZMQ message: {e}")
+        print(f"[ZMQ] Listener: An error occurred while receiving ZMQ message: {e}")
 
     # Clean up (This happens AFTER the task has finished waiting/receiving)
     sub.close()
@@ -110,6 +110,7 @@ async def main():
 
     print("\n--- Starting LLM Initialization ---")
     patch_engine_args()
+
     # 2. Initialize the LLM (This takes time and runs while event_task is waiting)
     llm = create_llm()
     print("--- LLM Initialization Complete ---")
