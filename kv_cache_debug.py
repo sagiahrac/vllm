@@ -22,7 +22,10 @@ from vllm.engine.arg_utils import EngineArgs
 
 
 def patch_engine_args():
-    # Simple patch: Make EngineArgs.enable_prefix_caching always return True
+    # Force enable prefix caching by patching EngineArgs property
+    # NOTE: vLLM disables prefix caching on non-x86_64 architectures because
+    # CPU-based paged attention is only implemented for x86_64. Other architectures
+    # skip KV cache functionality entirely.
     def always_true_prefix_caching(self):
         # EngineArgs.enable_prefix_caching: Always returning True"
         return True
@@ -46,8 +49,6 @@ def create_llm():
         topic="kv@localhost@facebook/opt-125m",
     )
 
-    # NOTE: LLM initialization can take a moment, which is why starting
-    # the listener task BEFORE this is critical for capturing events.
     llm = LLM(
         model="facebook/opt-125m",
         enable_prefix_caching=True,
@@ -135,5 +136,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    # The whole program runs inside the asyncio event loop
     asyncio.run(main())
