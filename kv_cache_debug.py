@@ -7,6 +7,7 @@ import zmq
 import zmq.asyncio
 from msgspec.msgpack import Decoder
 
+os.environ["PYTHONHASHSEED"] = "42"
 os.environ["VLLM_ENABLE_V1_MULTIPROCESSING"] = "0"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -20,6 +21,10 @@ from vllm.distributed.kv_events import (
 )
 from vllm.engine.arg_utils import EngineArgs
 
+MODEL_NAME = "openai-community/gpt2"
+ZMQ_PORT = 5557
+ZMQ_TOPIC = f"kv@localhost@{MODEL_NAME}"
+
 
 def patch_engine_args():
     # Force enable prefix caching by patching EngineArgs property
@@ -27,11 +32,11 @@ def patch_engine_args():
     # CPU-based paged attention is only implemented for x86_64. Other architectures
     # skip KV cache functionality entirely.
     def always_true_prefix_caching(self):
-        # EngineArgs.enable_prefix_caching: Always returning True"
+        # EngineArgs.enable_prefix_caching: Always returning True
         return True
 
     def set_prefix_caching(self, value):
-        # Ignoring attempt to set to set_prefix_caching, keeping True")
+        # Ignoring attempt to set prefix_caching, keeping True
         pass
 
     # Replace the enable_prefix_caching attribute with our property
@@ -45,17 +50,19 @@ def create_llm():
         enable_kv_cache_events=True,
         publisher="zmq",
         # The publisher endpoint is where the listener connects
-        endpoint="tcp://*:5557",
-        topic="kv@localhost@facebook/opt-125m",
+        endpoint=f"tcp://*:{ZMQ_PORT}",
+        topic=ZMQ_TOPIC,
     )
 
     llm = LLM(
-        model="facebook/opt-125m",
+        model=MODEL_NAME,
         enable_prefix_caching=True,
         dtype="float16",
         enforce_eager=True,
         disable_hybrid_kv_cache_manager=True,
         kv_events_config=kv_events_config,
+        block_size=16,
+        prefix_caching_hash_algo="sha256_cbor",
     )
     return llm
 
@@ -68,8 +75,8 @@ async def listen_for_kv_event() -> list[BlockStored | BlockRemoved | AllBlocksCl
     decoder = Decoder(type=KVEventBatch)
     context = zmq.asyncio.Context()
     sub = context.socket(zmq.SUB)
-    sub.connect("tcp://localhost:5557")
-    topic = "kv@localhost@facebook/opt-125m"
+    sub.connect(f"tcp://localhost:{ZMQ_PORT}")
+    topic = ZMQ_TOPIC
     sub.setsockopt_string(zmq.SUBSCRIBE, topic)
 
     print("[ZMQ] Listener started and waiting for events on topic:", topic)
@@ -133,6 +140,24 @@ async def main():
     print(f"\nReceived {len(events)} KV cache events:")
     for event in events:
         print(f"  - {event}")
+
+    # save event as json:
+    import json
+
+    events_json = {
+        "prompt": prompt,
+        "event_type": events[0].__class__.__name__,
+        "block_hashes": events[0].block_hashes,
+        "parent_block_hash": events[0].parent_block_hash,
+        "token_ids": events[0].token_ids,
+        "block_size": events[0].block_size,
+        "lora_id": events[0].lora_id,
+        "medium": events[0].medium,
+        "hash_seed": os.environ["PYTHONHASHSEED"],
+    }
+    with open("kv_events.json", "w") as f:
+        json.dump(events_json, f, indent=4)
+    print("\nKV events saved to kv_events.json")
 
 
 if __name__ == "__main__":
